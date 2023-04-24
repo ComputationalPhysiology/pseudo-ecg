@@ -1,2 +1,5 @@
+import pseudo_ecg
+
+
 def test_ecg():
-    pass
+    assert pseudo_ecg is not None
