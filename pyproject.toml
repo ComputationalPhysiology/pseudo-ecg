@@ -5,14 +5,22 @@ requires = ["setuptools>=61.0.0", "wheel"]
 name = "pseudo-ecg"
 version = "0.0.1"
 description = "Library to compute pseudo ECG from bidomain and monodomain simulations"
-authors = [{name = "Cécile Daversin-Catty", email = "cecile@simula.no" },{name = "Henrik Finsberg", email = "henriknf@simula.no"}]
-license = {file = "LICENSE"}
+authors = [{name = "Henrik Finsberg", email = "henriknf@simula.no"}, {name = "Cécile Daversin-Catty", email = "cecile@simula.no" }]
+license = {text = "MIT"}
 readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["cardiac", "ecg", "electrophysiology"]
 dependencies = [
     "numpy",
     "scipy",
     "tqdm"
 ]
+
+[project.urls]
+Homepage = "https://computationalphysiology.github.io/pseudo-ecg"
+Documentation = "https://computationalphysiology.github.io/pseudo-ecg"
+Source = "https://github.com/ComputationalPhysiology/pseudo-ecg"
+Tracker = "https://github.com/ComputationalPhysiology/pseudo-ecg/issues"
 
 [project.optional-dependencies]
 test = [

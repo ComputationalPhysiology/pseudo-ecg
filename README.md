@@ -14,7 +14,7 @@ python3 -m pip install pseudo-ecg
 
 ## Getting started
 
-TbW
+TBW
 
 ## License
 MIT
