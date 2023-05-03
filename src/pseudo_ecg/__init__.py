@@ -2,6 +2,7 @@ from importlib.metadata import metadata
 
 from . import ecg
 from .ecg import ECG
+from . import eikonal
 
 meta = metadata("pseudo-ecg")
 __version__ = meta["Version"]
@@ -10,4 +11,4 @@ __license__ = meta["License"]
 __email__ = meta["Author-email"]
 __program_name__ = meta["Name"]
 
-__all__ = ["ecg", "ECG"]
+__all__ = ["ecg", "ECG", "eikonal"]
