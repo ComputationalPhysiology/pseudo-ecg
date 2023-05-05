@@ -3,13 +3,13 @@ from scipy.spatial import KDTree
 import dolfin
 
 
-def extract_heart_from_torso(cfun: dolfin.MeshFunction, marker: int):
+def extract_heart_from_torso(cfun: dolfin.MeshFunction, marker: int) -> dolfin.Mesh:
     return dolfin.MeshView.create(cfun, marker)
 
 
 def facet_function_from_heart_mesh(
     ffun: dolfin.MeshFunction, heart_mesh: dolfin.Mesh, markers: List[int]
-):
+) -> dolfin.MeshFunction:
     assert ffun.mesh().id() in heart_mesh.topology().mapping()
 
     # Create a KDTree for the facet midpoints
