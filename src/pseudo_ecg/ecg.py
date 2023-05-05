@@ -14,6 +14,7 @@ def ecg_recovery(
     sigma_i,
     dx: dolfin.Measure,
     sigma_b: dolfin.Constant,
+    function_space: dolfin.FunctionSpace | None = None,
     point: np.ndarray | None = None,
     eikonal_factor: float = 25.0,
     r: dolfin.Function | None = None,
@@ -21,6 +22,10 @@ def ecg_recovery(
     if r is None:
         r = distance(mesh, point=point, factor=eikonal_factor)
     grad_vm = ufl.grad(v)
-    int_heart_expr = (ufl.div(sigma_i * grad_vm) / r) * dx
+    if function_space is None:
+        function_space = dolfin.VectorFunctionSpace(v.function_space().mesh(), "CG", 1)
+    int_heart_expr = (
+        ufl.nabla_div(dolfin.project(sigma_i * grad_vm, function_space)) / r
+    ) * dx
     int_heart = dolfin.assemble(int_heart_expr)
     return 1 / (4 * ufl.pi * sigma_b) * int_heart

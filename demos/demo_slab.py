@@ -148,6 +148,7 @@ def main():
 
     dx = dolfin.dx(subdomain_data=cfun, domain=mesh)(1)
     r = pseudo_ecg.eikonal.distance(mesh, point=[2.0, 2.0], factor=15)
+    V = dolfin.VectorFunctionSpace(heart_mesh, "CG", 1)
     ecg = []
     for v in vs:
         u_e = pseudo_ecg.ecg.ecg_recovery(
@@ -156,9 +157,9 @@ def main():
             sigma_i=2.0 * dolfin.Identity(2),
             r=r,
             dx=dx,
+            function_space=V,
             sigma_b=dolfin.Constant(1.0),
         )
-        print(float(u_e))
         ecg.append(float(u_e))
 
     fig, ax = plt.subplots()
