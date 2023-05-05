@@ -37,8 +37,6 @@ def distance(
     u = dolfin.TrialFunction(V)
     dist = dolfin.Function(V)
 
-    # breakpoint()
-
     bc = dolfin.DirichletBC(V, 0, get_point_source(point=point), "pointwise")
 
     a = ufl.dot(ufl.grad(u), ufl.grad(v)) * dx

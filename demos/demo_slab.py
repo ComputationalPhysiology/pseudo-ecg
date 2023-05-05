@@ -147,16 +147,16 @@ def main():
     vs = load_voltage(heart_mesh, xdmf_file)
 
     dx = dolfin.dx(subdomain_data=cfun, domain=mesh)(1)
+    r = pseudo_ecg.eikonal.distance(mesh, point=[2.0, 2.0], factor=15)
     ecg = []
     for v in vs:
         u_e = pseudo_ecg.ecg.ecg_recovery(
             v=v,
             mesh=mesh,
             sigma_i=2.0 * dolfin.Identity(2),
-            point=[2.0, 2.0],
+            r=r,
             dx=dx,
             sigma_b=dolfin.Constant(1.0),
-            eikonal_factor=15.0,
         )
         print(float(u_e))
         ecg.append(float(u_e))
