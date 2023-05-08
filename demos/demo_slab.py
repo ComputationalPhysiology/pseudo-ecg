@@ -13,7 +13,9 @@ dolfin.parameters["form_compiler"]["quadrature_degree"] = 3
 dolfin.parameters["form_compiler"]["representation"] = "uflacs"
 
 
-def solve_monodomain(heart_mesh: dolfin.Mesh, xdmf_file: str):
+def solve_monodomain(
+    heart_mesh: dolfin.Mesh, xdmf_file: str, polynomial_degree: int = 1
+):
     time = dolfin.Constant(0.0)
 
     # Define some external stimulus
@@ -54,9 +56,11 @@ def solve_monodomain(heart_mesh: dolfin.Mesh, xdmf_file: str):
     dt = 0.05
     scheme = "GRL1"
     preconditioner = "sor"
+
     ps["pde_solver"] = "monodomain"
     ps["MonodomainSolver"]["linear_solver_type"] = "iterative"
     ps["MonodomainSolver"]["theta"] = theta
+    ps["MonodomainSolver"]["polynomial_degree"] = polynomial_degree
     ps["MonodomainSolver"]["preconditioner"] = preconditioner
     ps["MonodomainSolver"]["default_timestep"] = dt
     ps["MonodomainSolver"]["use_custom_preconditioner"] = False
@@ -64,6 +68,7 @@ def solve_monodomain(heart_mesh: dolfin.Mesh, xdmf_file: str):
     ps["enable_adjoint"] = False
     ps["apply_stimulus_current_to_pde"] = True
     ps["CardiacODESolver"]["scheme"] = scheme
+    ps["CardiacODESolver"]["polynomial_degree"] = polynomial_degree
     solver = cbcbeat.SplittingSolver(cardiac_model, params=ps)
 
     # Extract the solution fields and set the initial conditions
@@ -106,8 +111,8 @@ def solve_monodomain(heart_mesh: dolfin.Mesh, xdmf_file: str):
     timer.stop()
 
 
-def load_voltage(heart_mesh, xdmf_file):
-    V = dolfin.FunctionSpace(heart_mesh, "Lagrange", 1)
+def load_voltage(heart_mesh, xdmf_file, polynomial_degree=1):
+    V = dolfin.FunctionSpace(heart_mesh, "Lagrange", polynomial_degree)
     v = dolfin.Function(V)
 
     i = 0
@@ -125,6 +130,7 @@ def load_voltage(heart_mesh, xdmf_file):
 
 
 def main():
+    polynomial_degree = 1
     mesh = dolfin.RectangleMesh(
         dolfin.Point(-1.0, -1.0), dolfin.Point(2.0, 2.0), 100, 100
     )
@@ -140,15 +146,26 @@ def main():
 
     heart_mesh = pseudo_ecg.mesh_utils.extract_heart_from_torso(cfun, marker=1)
 
-    xdmf_file = "v.xdmf"
-    if not Path(xdmf_file).is_file():
-        solve_monodomain(heart_mesh, xdmf_file)
+    if polynomial_degree == 2:
+        xdmf_file = "v_cg2.xdmf"
+        figpath = "ecg_cg2.png"
+    else:
+        xdmf_file = "v_cg1.xdmf"
+        figpath = "ecg_cg1.png"
 
-    vs = load_voltage(heart_mesh, xdmf_file)
+    if not Path(xdmf_file).is_file():
+        solve_monodomain(heart_mesh, xdmf_file, polynomial_degree)
+
+    vs = load_voltage(heart_mesh, xdmf_file, polynomial_degree=polynomial_degree)
 
     dx = dolfin.dx(subdomain_data=cfun, domain=mesh)(1)
     r = pseudo_ecg.eikonal.distance(mesh, point=[2.0, 2.0], factor=15)
-    V = dolfin.VectorFunctionSpace(heart_mesh, "CG", 1)
+
+    if polynomial_degree == 1:
+        V = dolfin.VectorFunctionSpace(heart_mesh, "CG", 1)
+    else:
+        V = None
+
     ecg = []
     for v in vs:
         u_e = pseudo_ecg.ecg.ecg_recovery(
@@ -164,7 +181,7 @@ def main():
 
     fig, ax = plt.subplots()
     ax.plot(ecg)
-    fig.savefig("ecg.png")
+    fig.savefig(figpath)
 
 
 if __name__ == "__main__":
