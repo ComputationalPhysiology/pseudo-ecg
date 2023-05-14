@@ -1,4 +1,5 @@
 from pathlib import Path
+from collections import defaultdict
 import matplotlib.pyplot as plt
 
 import dolfin
@@ -39,7 +40,7 @@ def solve_monodomain(
     stimulus = cbcbeat.Markerwise((I_s,), (1,), S1_markers)
 
     # Define the conductivity (tensors)
-    M_i = 2.0
+    M_i = 0.05
     # M_e = 1.0
 
     # Pick a cell model (see supported_cell_models for tested ones)
@@ -130,7 +131,7 @@ def load_voltage(heart_mesh, xdmf_file, polynomial_degree=1):
 
 
 def main():
-    polynomial_degree = 1
+    polynomial_degree = 2
     mesh = dolfin.RectangleMesh(
         dolfin.Point(-1.0, -1.0), dolfin.Point(2.0, 2.0), 100, 100
     )
@@ -146,12 +147,8 @@ def main():
 
     heart_mesh = pseudo_ecg.mesh_utils.extract_heart_from_torso(cfun, marker=1)
 
-    if polynomial_degree == 2:
-        xdmf_file = "v_cg2.xdmf"
-        figpath = "ecg_cg2.png"
-    else:
-        xdmf_file = "v_cg1.xdmf"
-        figpath = "ecg_cg1.png"
+    xdmf_file = "v_cg2.xdmf"
+    figpath = "ecg_cg2.png"
 
     if not Path(xdmf_file).is_file():
         solve_monodomain(heart_mesh, xdmf_file, polynomial_degree)
@@ -159,28 +156,36 @@ def main():
     vs = load_voltage(heart_mesh, xdmf_file, polynomial_degree=polynomial_degree)
 
     dx = dolfin.dx(subdomain_data=cfun, domain=mesh)(1)
-    r = pseudo_ecg.eikonal.distance(mesh, point=[2.0, 2.0], factor=15)
 
-    if polynomial_degree == 1:
-        V = dolfin.VectorFunctionSpace(heart_mesh, "CG", 1)
-    else:
-        V = None
+    points = [
+        (-1.0, 2.0),
+        (2.0, 2.0),
+        (-1.0, -1.0),
+        (2.0, -1.0),
+    ]
+    dist = {}
+    for point in points:
+        dist[point] = pseudo_ecg.eikonal.distance(mesh, point=point, factor=15)
 
-    ecg = []
+    ecg = defaultdict(list)
     for v in vs:
-        u_e = pseudo_ecg.ecg.ecg_recovery(
-            v=v,
-            mesh=mesh,
-            sigma_i=2.0 * dolfin.Identity(2),
-            r=r,
-            dx=dx,
-            function_space=V,
-            sigma_b=dolfin.Constant(1.0),
-        )
-        ecg.append(float(u_e))
+        for point in points:
+            u_e = pseudo_ecg.ecg.ecg_recovery(
+                v=v,
+                mesh=mesh,
+                sigma_i=0.02 * dolfin.Identity(2),
+                r=dist[point],
+                dx=dx,
+                sigma_b=dolfin.Constant(1.0),
+            )
+
+            ecg[point].append(float(u_e))
 
     fig, ax = plt.subplots()
-    ax.plot(ecg)
+    for p, u_e in ecg.items():
+        ax.plot(u_e, label=str(p))
+
+    ax.legend()
     fig.savefig(figpath)
 
 
