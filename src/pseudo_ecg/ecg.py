@@ -20,7 +20,7 @@ def ecg_recovery(
 ):
     if r is None:
         r = distance(mesh, point=point, factor=eikonal_factor)
-    grad_vm = ufl.grad(v)
-    int_heart_expr = (ufl.div(sigma_i * grad_vm) / r) * dx
+
+    int_heart_expr = (ufl.div(sigma_i * ufl.grad(v)) / r) * dx
     int_heart = dolfin.assemble(int_heart_expr)
     return 1 / (4 * ufl.pi * sigma_b) * int_heart
