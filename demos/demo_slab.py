@@ -164,8 +164,9 @@ def main():
         (2.0, -1.0),
     ]
     dist = {}
+    X = dolfin.SpatialCoordinate(mesh)
     for point in points:
-        dist[point] = pseudo_ecg.eikonal.distance(mesh, point=point, factor=15)
+        dist[point] = dolfin.sqrt((X - dolfin.Constant(point)) ** 2)
 
     ecg = defaultdict(list)
     for v in vs:

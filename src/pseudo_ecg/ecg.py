@@ -5,9 +5,6 @@ import dolfin
 import ufl
 
 
-from .eikonal import distance
-
-
 def ecg_recovery(
     v: dolfin.Function,
     mesh: dolfin.Mesh,
@@ -19,7 +16,7 @@ def ecg_recovery(
     r: dolfin.Function | None = None,
 ):
     if r is None:
-        r = distance(mesh, point=point, factor=eikonal_factor)
+        r = dolfin.sqrt((dolfin.SpatialCoordinate(mesh) - dolfin.Constant(point)) ** 2)
 
     int_heart_expr = (ufl.div(sigma_i * ufl.grad(v)) / r) * dx
     int_heart = dolfin.assemble(int_heart_expr)
