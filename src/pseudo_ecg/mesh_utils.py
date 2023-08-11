@@ -1,4 +1,3 @@
-from typing import List
 from scipy.spatial import KDTree
 import dolfin
 
@@ -8,7 +7,8 @@ def extract_heart_from_torso(cfun: dolfin.MeshFunction, marker: int) -> dolfin.M
 
 
 def facet_function_from_heart_mesh(
-    ffun: dolfin.MeshFunction, heart_mesh: dolfin.Mesh, markers: List[int]
+    ffun: dolfin.MeshFunction,
+    heart_mesh: dolfin.Mesh,
 ) -> dolfin.MeshFunction:
     assert ffun.mesh().id() in heart_mesh.topology().mapping()
 
