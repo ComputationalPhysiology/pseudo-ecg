@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import cardiac_geometries
 
 import dolfin
-import ufl
 import numpy as np
 import cbcbeat
 import pseudo_ecg
@@ -166,87 +165,7 @@ def surface_to_volume_ratio(mesh):
     return area / volume  # cm^{-1}
 
 
-def pseudo_bidomain():
-    xdmf_file = "monodomain_slab.xdmf"
-    geo_slab = cardiac_geometries.geometry.Geometry.from_folder("slab")
-    vs = load_voltage(geo_slab.mesh, xdmf_file)
-
-    geo = cardiac_geometries.geometry.Geometry.from_folder("slab-in-bath")
-    heart = dolfin.MeshView.create(geo.cfun, geo.markers["Myocardium"][0])
-
-    g_il = 0.34  # S / m
-    g_it = 0.060  # S / m
-    g_el = 0.12  # S / m
-    g_et = 0.080  # S / m
-    g_b = 1.0
-
-    V_g = dolfin.FunctionSpace(geo.mesh, "DG", 0)
-
-    fiber = dolfin.as_vector([1, 0, 0])
-    sheet = dolfin.as_vector([0, 1, 0])
-    cross_sheet = dolfin.as_vector([0, 0, 1])
-
-    A = dolfin.as_matrix(
-        [
-            [fiber[0], sheet[0], cross_sheet[0]],
-            [fiber[1], sheet[1], cross_sheet[1]],
-            [fiber[2], sheet[2], cross_sheet[2]],
-        ]
-    )
-
-    bath_inds = np.where(geo.cfun.array() == geo.markers["Bath"][0])[0]
-    cell_inds = np.where(geo.cfun.array() == geo.markers["Myocardium"][0])[0]
-
-    g_il_fun = dolfin.Function(V_g)
-    g_il_fun.vector()[cell_inds] = g_il
-    g_il_fun.vector()[bath_inds] = g_b
-
-    g_it_fun = dolfin.Function(V_g)
-    g_it_fun.vector()[cell_inds] = g_it
-    g_it_fun.vector()[bath_inds] = g_b
-
-    g_el_fun = dolfin.Function(V_g)
-    g_el_fun.vector()[cell_inds] = g_el
-    g_el_fun.vector()[bath_inds] = g_b
-
-    g_et_fun = dolfin.Function(V_g)
-    g_et_fun.vector()[cell_inds] = g_et
-    g_et_fun.vector()[bath_inds] = g_b
-
-    M_e_star = ufl.diag(dolfin.as_vector([g_el_fun, g_et_fun, g_et_fun]))
-    M_i_star = ufl.diag(dolfin.as_vector([g_il_fun, g_it_fun, g_it_fun]))
-    M_e = A * M_e_star * A.T
-    M_i = A * M_i_star * A.T
-
-    V = dolfin.FunctionSpace(geo.mesh, "P", 1)
-    phie = dolfin.Function(V)
-    w = dolfin.TestFunction(V)
-
-    V_heart = dolfin.FunctionSpace(heart, "P", 1)
-    v_heart = dolfin.Function(V_heart)
-
-    for i, v in enumerate(vs):
-
-        v_heart.interpolate(v)
-        G = ((M_i + M_e) * ufl.grad(phie) + M_i * ufl.grad(v_heart)) * ufl.grad(w)
-        # Define variational problem
-        a, L = dolfin.system(G)
-        pde = dolfin.LinearVariationalProblem(a, L, phie)
-        solver = dolfin.LinearVariationalSolver(pde)
-        solver.solve()
-
-        with dolfin.XDMFFile("pseudo_bidomain.xdmf") as xdmf:
-            xdmf.write_checkpoint(
-                phie,
-                function_name="phie",
-                time_step=i,
-                encoding=dolfin.XDMFFile.Encoding.HDF5,
-                append=True,
-            )
-
-
 def main():
-
     geo = cardiac_geometries.geometry.Geometry.from_folder("slab")
     xdmf_file = "monodomain_slab.xdmf"
     figpath = "monodomain_ecg_slab.png"
@@ -292,5 +211,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    pseudo_bidomain()
+    main()
