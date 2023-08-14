@@ -81,3 +81,16 @@ def test_vertex_map_submesh(data: Data):
     vmap = mesh_utils.vertex_map_submesh(heart_mesh, data.mesh)
     vmap_tree = mesh_utils.vertex_map_kdtree(heart_mesh, data.mesh)
     assert np.allclose(vmap, vmap_tree)
+
+
+def test_surface_to_volume_ratio():
+    mesh = dolfin.BoxMesh(
+        dolfin.MPI.comm_world,
+        dolfin.Point(0.0, 0.0, 0.0),
+        dolfin.Point(20, 7, 3),
+        3,
+        3,
+        3,
+    )
+    chi = mesh_utils.surface_to_volume_ratio(mesh)
+    assert np.isclose(chi, (2 * (20 * 7 + 20 * 3 + 7 * 3) / (20 * 7 * 3)))

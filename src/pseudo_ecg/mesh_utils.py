@@ -125,3 +125,10 @@ def vertex_map_submesh(
     """
 
     return submesh.data().array("parent_vertex_indices", 0)
+
+
+def surface_to_volume_ratio(mesh: dolfin.Mesh) -> float:
+    """Compute the surface area divided by the volume"""
+    area = dolfin.assemble(dolfin.Constant(1.0) * dolfin.ds(domain=mesh))
+    volume = dolfin.assemble(dolfin.Constant(1.0) * dolfin.dx(domain=mesh))
+    return area / volume
