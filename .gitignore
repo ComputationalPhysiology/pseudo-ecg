@@ -1,3 +1,16 @@
+*.xdmf
+*.h5
+*.vtu
+*.pvd
+*.vscode
+*.npy
+coverage.json
+*.DS_Store
+third_party
+references
+demos/slab/*.png
+demos/slab/slab-in-bath/
+demos/slab/slab/
 # Created by https://www.toptal.com/developers/gitignore/api/python,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,visualstudiocode
 sphere-line*
