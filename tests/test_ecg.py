@@ -1,15 +1,10 @@
 import math
-import pytest
 import dolfin
 
 from pseudo_ecg.ecg import ecg_recovery
 
 
-@pytest.mark.parametrize(
-    "use_eikonal, expected_u_e",
-    ((True, 0.13810180497903637), (False, 0.14702512943372342)),
-)
-def test_ecg_recovery(use_eikonal, expected_u_e):
+def test_ecg_recovery():
     mesh = dolfin.UnitCubeMesh(5, 5, 5)
     cfun = dolfin.MeshFunction("size_t", mesh, 3)
 
@@ -30,15 +25,12 @@ def test_ecg_recovery(use_eikonal, expected_u_e):
     u_e = ecg_recovery(
         v=v,
         mesh=mesh,
-        sigma_i=dolfin.Identity(3),
         point=[1.0, 1.0, 1.0],
         dx=dx,
-        sigma_b=dolfin.Constant(1.0),
-        use_eikonal=use_eikonal,
+        sigma_b=1.0,
     )
 
-    # FIXME: Find some analytic expression
-    assert math.isclose(float(u_e), expected_u_e)
+    assert math.isclose(float(u_e), -0.04901946833095499)
 
 
 if __name__ == "__main__":
