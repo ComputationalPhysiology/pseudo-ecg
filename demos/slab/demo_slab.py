@@ -23,14 +23,14 @@ def harmonic_mean(a, b):
     return a * b / (a + b)
 
 
-def define_stimulus(mesh, time, chi, C_m) -> cbcbeat.Markerwise:
+def define_stimulus(mesh, time, chi, C_m, amp=50000.0) -> cbcbeat.Markerwise:
     # Define some external stimulus
     S1_marker = 1
     S1_subdomain = dolfin.CompiledSubDomain("x[0] <= 0.01")
     S1_markers = dolfin.MeshFunction("size_t", mesh, mesh.topology().dim())
     S1_subdomain.mark(S1_markers, S1_marker)
 
-    amp = 50000.0  # mu A/cm^3
+    # amp = 50000.0  # mu A/cm^3
     factor = 1.0 / (chi * C_m)  # NB: cbcbeat convention
 
     amplitude = factor * amp  # mV/ms
