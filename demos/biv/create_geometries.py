@@ -1,11 +1,14 @@
 import cardiac_geometries
 
 
-def create_biv_in_torso():
+def create_biv_in_torso(
+    outdir="biv-in-torso",
+    char_length=0.2,
+):
 
     cardiac_geometries.mesh.create_biv_ellipsoid_torso(
-        outdir="biv-in-torso",
-        char_length=0.2,
+        outdir=outdir,
+        char_length=char_length,
         heart_as_surface=False,
         torso_length=8.0,
         torso_width=8.0,
@@ -62,5 +65,7 @@ def create_biv():
 
 
 if __name__ == "__main__":
-    create_biv_in_torso()
-    create_biv()
+    # create_biv_in_torso()
+    # create_biv()
+
+    create_biv_in_torso(char_length=0.1, outdir="biv-in-torso-fine")

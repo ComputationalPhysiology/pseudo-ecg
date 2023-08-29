@@ -23,14 +23,14 @@ def harmonic_mean(a, b):
     return a * b / (a + b)
 
 
-def define_stimulus(mesh, time, chi, C_m) -> cbcbeat.Markerwise:
+def define_stimulus(mesh, time, chi, C_m, amp=500) -> cbcbeat.Markerwise:
     # Define some external stimulus
     S1_marker = 1
     S1_subdomain = dolfin.CompiledSubDomain("x[0] > 3.5")
     S1_markers = dolfin.MeshFunction("size_t", mesh, mesh.topology().dim())
     S1_subdomain.mark(S1_markers, S1_marker)
 
-    amp = 500.0  # mu A/cm^3
+    # amp = 500.0  # mu A/cm^3
     factor = 1.0 / (chi * C_m)  # NB: cbcbeat convention
 
     amplitude = factor * amp  # mV/ms
@@ -65,9 +65,9 @@ def load_from_file(heart_mesh, xdmffile, key="v"):
 
 
 class Conductivites(NamedTuple):
-    G_i: ufl.tensors.ComponentTensor
-    G_e: ufl.tensors.ComponentTensor
-    G_m: ufl.tensors.ComponentTensor
+    G_i: ufl.tensors.ComponentTensor | None
+    G_e: ufl.tensors.ComponentTensor | None
+    G_m: ufl.tensors.ComponentTensor | None
     g_il: float
     g_it: float
     g_el: float
@@ -235,7 +235,7 @@ def main(
 
     # Membrane capacitance
     C_m = 1.0  # mu F / cm^2
-    chi = pseudo_ecg.surface_to_volume_ratio(heart)
+    chi = 2000  # cm^-1
 
     # Conductivies
     g_il = 0.34  # S / m
@@ -323,7 +323,10 @@ def main(
             g_b=conductivites_torso.g_b,
             vs=vs,
             electrodes=electrodes,
+            xdmffile=Path(fibpath).with_suffix(".xdmf"),
         )
+
+        # breakpoint()
 
     else:
         # Use recovery
