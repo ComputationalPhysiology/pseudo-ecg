@@ -323,7 +323,7 @@ def main(
             g_b=conductivites_torso.g_b,
             vs=vs,
             electrodes=electrodes,
-            xdmffile=Path(fibpath).with_suffix(".xdmf"),
+            xdmffile=Path(figpath).with_suffix(".xdmf"),
         )
 
         # breakpoint()
@@ -358,11 +358,11 @@ def main(
         axi.grid()
 
     fig.savefig(figpath)
-    np.save(Path(fibpath).with_suffix(".npy"), phie, allow_pickle=True)
+    np.save(Path(figpath).with_suffix(".npy"), phie, allow_pickle=True)
 
 
 if __name__ == "__main__":
-    for use_augmented_monodomain, use_pseudobidomain, xdmffile, fibpath in [
+    for use_augmented_monodomain, use_pseudobidomain, xdmffile, figpath in [
         # (False, False, "out_mono.xdmf", "mono.png"),
         (False, True, "out_mono.xdmf", "pb_mono.png"),
         # (True, False, "out_aug_mono.xdmf", "aug_mono.png"),
@@ -372,5 +372,5 @@ if __name__ == "__main__":
             use_augmented_monodomain=use_augmented_monodomain,
             use_pseudobidomain=use_pseudobidomain,
             xdmffile=xdmffile,
-            figpath=fibpath,
+            figpath=figpath,
         )

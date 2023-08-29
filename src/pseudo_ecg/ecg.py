@@ -1,5 +1,6 @@
 from __future__ import annotations
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 import dolfin
@@ -37,6 +38,7 @@ def pseudo_bidomain(
     g_b: float,
     vs: list[dolfin.Function],
     electrodes: list[tuple[float, float, float]],
+    xdmffile: Path | str | None = None,
 ):
     V = dolfin.FunctionSpace(mesh, "P", 1)
     VmT = dolfin.Function(V, name="Vm_torso")
@@ -66,14 +68,30 @@ def pseudo_bidomain(
     Vh = vs[0].function_space()
     vmap = vertex_map_kdtree(Vh.mesh(), mesh)
 
+    if xdmffile is not None:
+        xdmffile = Path(xdmffile)
+        xdmffile.unlink(missing_ok=True)
+        xdmffile.with_suffix(".h5").unlink(missing_ok=True)
+
     ecg = defaultdict(list)
-    for vh in vs:
+    for i, vh in enumerate(vs):
         VmT.vector()[dolfin.vertex_to_dof_map(V)[vmap]] = vh.vector()[
             dolfin.vertex_to_dof_map(Vh)
         ].copy()
         dolfin.assemble(Ltorso, tensor=bt)
         null_space.orthogonalize(bt)
         solverT.solve(ue.vector(), bt)
+
+        if xdmffile is not None:
+            with dolfin.XDMFFile(xdmffile.as_posix()) as f:
+                f.write_checkpoint(
+                    ue,
+                    function_name="ue",
+                    time_step=i,
+                    encoding=dolfin.XDMFFile.Encoding.HDF5,
+                    append=True,
+                )
+
         for el in electrodes:
             ecg[el].append(ue(el))
 

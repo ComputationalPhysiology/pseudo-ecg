@@ -46,7 +46,7 @@ def define_stimulus(geo, time, chi, C_m, amp=500) -> cbcbeat.Markerwise:
         degree=0,
     )
 
-    return cbcbeat.Markerwise((I_s,), (S1_marker,), S1_markers)
+    return cbcbeat.Markerwise((I_s,), (1,), stim)
 
 
 def setup_conductivites(
@@ -241,30 +241,47 @@ def main():
     vurs = demo_biv.load_from_file(geo.mesh, xdmf_file, key="ue")
 
     electrodes = [
-        (0.0, 0.0, -0.1),
-        (0.5, 0.0, -0.1),
-        (1.0, 0.0, -0.1),
-        (0.0, 0.0, 0.0),
-        (0.5, 0.0, 0.0),
-        (1.0, 0.0, 0.0),
-        (0.0, 0.0, 0.25),
-        (0.5, 0.0, 0.25),
-        (1.0, 0.0, 0.25),
+        (4.0, 0.0, 0.0),  # ground
+        (-1.0, 0.0, -2.0),  # L - left arm
+        (-1.0, 0.0, 0.0),  # R - right arm
+        (4.0, 0.0, -2.0),  # F - left leg
     ]
+
+    # Indices
+    left_arm_index = 1
+    right_arm_index = 2
+    left_leg_index = 3
 
     ecg = defaultdict(list)
     for phie in vurs:
         for el in electrodes:
             ecg[el].append(phie(el))
 
-    fig, ax = plt.subplots(3, 3, figsize=(12, 8), sharex=True)
-    for i, (p, u_e) in enumerate(ecg.items()):
-        axi = ax[::-1].T.flatten()[i]
-        axi.plot(u_e, label=str(p))
-        axi.set_title(f"Electrode {i + 1}")
+    lead1 = np.subtract(
+        ecg[electrodes[left_arm_index]], ecg[electrodes[right_arm_index]]
+    )
+    lead2 = np.subtract(
+        ecg[electrodes[left_leg_index]], ecg[electrodes[right_arm_index]]
+    )
+    lead3 = np.subtract(
+        ecg[electrodes[left_leg_index]], ecg[electrodes[left_arm_index]]
+    )
+
+    fig, ax = plt.subplots(1, 3, figsize=(12, 8), sharex=True, sharey=True)
+    ax[0].plot(lead1)
+    ax[0].set_title("Lead 1")
+
+    ax[1].plot(lead2)
+    ax[1].set_title("Lead 2")
+
+    ax[2].plot(lead3)
+    ax[2].set_title("Lead 3")
+
+    for axi in ax.flatten():
         axi.grid()
 
     fig.savefig(figpath)
+    np.save(Path(figpath).with_suffix(".npy"), ecg, allow_pickle=True)
 
 
 if __name__ == "__main__":
