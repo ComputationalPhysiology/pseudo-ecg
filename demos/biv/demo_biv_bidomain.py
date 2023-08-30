@@ -14,21 +14,51 @@ import dolfin
 import numpy as np
 import cbcbeat
 
-import demo_slab
+import demo_biv
+
+
+def define_stimulus(geo, time, chi, C_m, amp=500) -> cbcbeat.Markerwise:
+    # Define some external stimulus
+    S1_marker = 1
+    S1_subdomain = dolfin.CompiledSubDomain("x[0] > 3.0")
+    S1_markers = dolfin.MeshFunction("size_t", geo.mesh, geo.mesh.topology().dim())
+    S1_subdomain.mark(S1_markers, S1_marker)
+
+    stim = dolfin.MeshFunction("size_t", geo.mesh, geo.mesh.topology().dim())
+    stim.set_all(0)
+    stim.array()[
+        np.logical_and(
+            geo.cfun.array() == geo.markers["HEART"][0], S1_markers.array() == 1
+        )
+    ] = 1
+    dolfin.File("stim.pvd") << stim
+
+    # amp = 500.0  # mu A/cm^3
+    factor = 1.0 / (chi * C_m)  # NB: cbcbeat convention
+
+    amplitude = factor * amp  # mV/ms
+    I_s = dolfin.Expression(
+        "time >= start ? (time <= (duration + start) ? amplitude : 0.0) : 0.0",
+        time=time,
+        start=1.0,
+        duration=1.0,
+        amplitude=amplitude,
+        degree=0,
+    )
+
+    return cbcbeat.Markerwise((I_s,), (1,), stim)
 
 
 def setup_conductivites(
-    geo, chi, C_m, g_il=0.34, g_it=0.060, g_el=0.12, g_et=0.080, g_b=1.0
+    geo, A, chi, C_m, g_il=0.34, g_it=0.060, g_el=0.12, g_et=0.080, g_b=1.0
 ):
-
-    A = demo_slab.define_fibers()
 
     factor = 1 / (chi * C_m)
 
     V_g = dolfin.FunctionSpace(geo.mesh, "DG", 0)
 
-    bath_inds = np.where(geo.cfun.array() == geo.markers["Bath"][0])[0]
-    cell_inds = np.where(geo.cfun.array() == geo.markers["Myocardium"][0])[0]
+    bath_inds = np.where(geo.cfun.array() == geo.markers["TISSUE"][0])[0]
+    cell_inds = np.where(geo.cfun.array() == geo.markers["HEART"][0])[0]
 
     g_il_fun = dolfin.Function(V_g)
     g_il_fun.vector()[cell_inds] = g_il * factor
@@ -52,7 +82,7 @@ def setup_conductivites(
     G_e = A * M_e_star * A.T
     G_i = A * M_i_star * A.T
 
-    return demo_slab.Conductivites(
+    return demo_biv.Conductivites(
         G_i=G_i,
         G_e=G_e,
         G_m=None,
@@ -89,7 +119,7 @@ def solve_bidomain(cardiac_model: cbcbeat.CardiacModel, xdmf_file: str):
 
     # Time stepping parameters
     # dt = 0.1
-    T = 500.0
+    T = 50.0
     interval = (0.0, T)
 
     timer = dolfin.Timer("XXX Forward solve")  # Time the total solve
@@ -158,13 +188,20 @@ def solve_bidomain(cardiac_model: cbcbeat.CardiacModel, xdmf_file: str):
 
 def main():
 
-    geo = cardiac_geometries.geometry.Geometry.from_folder("slab-in-bath")
-    heart = geo.mesh
+    geo = cardiac_geometries.geometry.Geometry.from_folder("biv-in-torso-fine")
 
-    xdmf_file = "bidomain_slab.xdmf"
-    figpath = "bidomain_ecg_slab.png"
+    xdmf_file = "bidomain_biv.xdmf"
+    figpath = "bidomain_ecg_biv.png"
 
     if not Path(xdmf_file).is_file():
+
+        A = dolfin.as_matrix(
+            [
+                [geo.f0[0], geo.s0[0], geo.n0[0]],
+                [geo.f0[1], geo.s0[1], geo.n0[1]],
+                [geo.f0[2], geo.s0[2], geo.n0[2]],
+            ]
+        )
 
         # Membrane capacitance
         C_m = 1.0  # mu F / cm^2
@@ -180,6 +217,7 @@ def main():
 
         conductivites = setup_conductivites(
             geo=geo,
+            A=A,
             chi=chi,
             C_m=C_m,
             g_il=g_il,
@@ -192,41 +230,58 @@ def main():
         time = dolfin.Constant(0.0)
 
         # For some reason with need a bit higher stimulus.
-        stimulus = demo_slab.define_stimulus(heart, time, chi, C_m, amp=200000.0)
+        stimulus = define_stimulus(geo, time, chi, C_m, amp=200000.0)
         cell_model = cbcbeat.Tentusscher_panfilov_2006_epi_cell()
         cardiac_model = cbcbeat.CardiacModel(
-            heart, time, conductivites.G_i, conductivites.G_e, cell_model, stimulus
+            geo.mesh, time, conductivites.G_i, conductivites.G_e, cell_model, stimulus
         )
 
         solve_bidomain(cardiac_model=cardiac_model, xdmf_file=xdmf_file)
 
-    vurs = demo_slab.load_from_file(geo.mesh, xdmf_file, key="ue")
+    vurs = demo_biv.load_from_file(geo.mesh, xdmf_file, key="ue")
 
     electrodes = [
-        (0.0, 0.0, -0.1),
-        (0.5, 0.0, -0.1),
-        (1.0, 0.0, -0.1),
-        (0.0, 0.0, 0.0),
-        (0.5, 0.0, 0.0),
-        (1.0, 0.0, 0.0),
-        (0.0, 0.0, 0.25),
-        (0.5, 0.0, 0.25),
-        (1.0, 0.0, 0.25),
+        (4.0, 0.0, 0.0),  # ground
+        (-1.0, 0.0, -2.0),  # L - left arm
+        (-1.0, 0.0, 0.0),  # R - right arm
+        (4.0, 0.0, -2.0),  # F - left leg
     ]
+
+    # Indices
+    left_arm_index = 1
+    right_arm_index = 2
+    left_leg_index = 3
 
     ecg = defaultdict(list)
     for phie in vurs:
         for el in electrodes:
             ecg[el].append(phie(el))
 
-    fig, ax = plt.subplots(3, 3, figsize=(12, 8), sharex=True)
-    for i, (p, u_e) in enumerate(ecg.items()):
-        axi = ax[::-1].T.flatten()[i]
-        axi.plot(u_e, label=str(p))
-        axi.set_title(f"Electrode {i + 1}")
+    lead1 = np.subtract(
+        ecg[electrodes[left_arm_index]], ecg[electrodes[right_arm_index]]
+    )
+    lead2 = np.subtract(
+        ecg[electrodes[left_leg_index]], ecg[electrodes[right_arm_index]]
+    )
+    lead3 = np.subtract(
+        ecg[electrodes[left_leg_index]], ecg[electrodes[left_arm_index]]
+    )
+
+    fig, ax = plt.subplots(1, 3, figsize=(12, 8), sharex=True, sharey=True)
+    ax[0].plot(lead1)
+    ax[0].set_title("Lead 1")
+
+    ax[1].plot(lead2)
+    ax[1].set_title("Lead 2")
+
+    ax[2].plot(lead3)
+    ax[2].set_title("Lead 3")
+
+    for axi in ax.flatten():
         axi.grid()
 
     fig.savefig(figpath)
+    np.save(Path(figpath).with_suffix(".npy"), ecg, allow_pickle=True)
 
 
 if __name__ == "__main__":
