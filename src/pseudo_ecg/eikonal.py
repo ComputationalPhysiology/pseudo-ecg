@@ -6,6 +6,7 @@ try:
 except ImportError:
     import ufl
 
+
 def get_point_source(point: np.ndarray) -> dolfin.SubDomain:
     class PointSource3D(dolfin.SubDomain):
         def inside(self, x, on_boundary):

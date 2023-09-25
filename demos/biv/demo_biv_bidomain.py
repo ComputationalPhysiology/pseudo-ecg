@@ -13,7 +13,7 @@ try:
     import ufl_legacy as ufl
 except ImportError:
     import ufl
-    
+
 import dolfin
 import numpy as np
 import cbcbeat
