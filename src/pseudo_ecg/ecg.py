@@ -4,7 +4,11 @@ from pathlib import Path
 
 import numpy as np
 import dolfin
-import ufl
+
+try:
+    import ufl_legacy as ufl
+except ImportError:
+    import ufl
 
 from .mesh_utils import vertex_map_kdtree
 

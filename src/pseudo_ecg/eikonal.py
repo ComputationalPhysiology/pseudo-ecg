@@ -1,6 +1,10 @@
 import dolfin
-import ufl
 import numpy as np
+
+try:
+    import ufl_legacy as ufl
+except ImportError:
+    import ufl
 
 
 def get_point_source(point: np.ndarray) -> dolfin.SubDomain:

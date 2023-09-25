@@ -6,9 +6,12 @@ import dolfin
 import matplotlib.pyplot as plt
 import cardiac_geometries
 import numpy as np
-import ufl
 import cbcbeat
 
+try:
+    import ufl_legacy as ufl
+except ImportError:
+    import ufl
 
 import pseudo_ecg
 
