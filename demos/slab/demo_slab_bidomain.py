@@ -8,7 +8,11 @@ from pathlib import Path
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import cardiac_geometries
-import ufl
+
+try:
+    import ufl_legacy as ufl
+except ImportError:
+    import ufl
 
 import dolfin
 import numpy as np
